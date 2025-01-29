@@ -244,6 +244,15 @@ proc dynamicTensor.relu(): dynamicTensor(eltType) {
     return new dynamicTensor(eltType);
 }
 
+proc dynamicTensor.square(): dynamicTensor(eltType) {
+    for param rank in 1..maxRank {
+        if this.checkRank(rank) then
+            return this.forceRank(rank).square().eraseRank();
+    }
+    halt("Could not determine rank in dynamicTensor.square.");
+    return new dynamicTensor(eltType);
+}
+
 proc dynamicTensor.gelu(): dynamicTensor(eltType) {
     for param rank in 1..maxRank {
         if this.checkRank(rank) then

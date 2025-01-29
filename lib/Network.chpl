@@ -311,7 +311,7 @@ proc modelFromSpecFile(path: string, type dtype=real(32), targetLocales: [] loca
     return moduleFromSpec(ms,dtype,targetLocales,inputShape);
 }
 
-proc loadModel(specFile: string, weightsFolder: string, type dtype = real(32),debug = false): owned Module(dtype) {
+proc loadModel(specFile: string, weightsFolder: string, type dtype = real(32),param debug = false): owned Module(dtype) {
     var model: owned Module(dtype) = modelFromSpecFile(specFile, dtype, empty_locales, optional.empty(1*int));
 
     model.loadPyTorchDump(weightsFolder,dtype = dtype, debug = debug);

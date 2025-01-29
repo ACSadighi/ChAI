@@ -19,12 +19,14 @@ record dict : serializable {
         this.order = order;
     }
 
-    proc init(table: map(?keyType,?valType)) {
+    proc init(in table: map(?keyType,?valType)) {
         var ks = new list(keyType);
-        var tbl: map(keyType,valType) = table;
-        for k in tbl.keys() do
+        var tbl = new map(keyType,valType);
+        for k in table.keys() {
             ks.pushBack(k);
-        this.init(tbl,ks);
+            tbl.addOrReplace(k,table[k]);
+        }
+        this.init(table,ks);
     }
 
     proc init(type keyType, type valType) {
@@ -59,18 +61,111 @@ record dict : serializable {
         return table[key];
     }
 
-    iter keys(): keyType do 
-        for i in 0..<order.size do 
-            yield order[i];
 
-    iter values(): valType do 
-        for k in keys() do 
-            yield table[k];
+    proc ref getKey(i: int) ref do
+        return order[i];
+    
+    proc const ref getKey(i: int) const ref do
+        return order[i];
 
-    iter these() do
-        for k in order {
-            yield (k,table[k]);
-        }
+    iter keys() do 
+        for i in 0..<this.size do 
+            yield this.getKey(i);
+
+    proc ref getNVal(i: int) ref throws {
+        return table[order[i]];
+    }
+
+    proc const ref getNVal(i: int) const ref throws {
+        return table[order[i]];
+    }
+
+    iter ref values() ref do
+        for i in 0..<this.size do 
+            yield this.getNVal(i);
+
+    iter const ref values() const ref do
+        for i in 0..<this.size do 
+            yield this.getNVal(i);
+
+    // iter values() do
+    //     for i in 0..<this.size do 
+    //         yield this.getVal(i);
+
+    proc ref this(k: keyType) ref throws {
+        if !table.contains(k) then
+            throw new Error("Key not found: " + k:string);
+        return table[k];
+    }
+
+    // iter values() ref : valType do 
+    //     for k in keys() do 
+    //         yield table[k];
+
+    
+
+
+    // iter these() {
+    //     for (k,v) in zip(this.keys(),this.values()) {
+    //         yield (k,v);
+    //     }
+    // }
+
+
+    // iter these() ref where !isClassType(valType) {
+    //     for k in order {
+    //         ref v = table[k];
+    //         yield (k,v);
+    //     }
+    // }
+
+    // iter these() const ref where !isClassType(valType) do
+
+    //     for k in order {
+    //         const ref v = table[k];
+    //         yield (k,v);
+    //     }
+
+    // iter these() where !isClassType(valType) do
+    //     for k in order {
+    //         yield (k,table[k]);
+    //     }
+    
+    // iter these() where isSharedClassType(valType) {
+    //     for k in order {
+    //         yield (k,table[k]);
+    //     }
+    // }
+
+    // // iter these() where isClassType(valType) {
+    // //     compilerError(valType:string);
+    // //     for k in order {
+    // //         yield (k,table[k]);
+    // //     }
+    // // }
+
+    // iter these() where isClassType(valType) && !isSharedClassType(valType) {
+    //     compilerError(valType:string);
+    //     for k in order {
+    //         yield (k,table[k]);
+    //     }
+    // }
+    
+    // // iter these() ref {
+    // //     for k in order {
+    // //         ref v = table[k];
+    // //         yield (k,v);
+    // //     }
+    // // }
+
+
+    // // iter these() const ref {
+    // //     for k in order {
+    // //         const ref v = table[k];
+    // //         yield (k,v);
+    // //     }
+    // // }
+
 
     proc ref insert(in key: keyType, in value: valType) {
         if !order.contains(key) then

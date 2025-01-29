@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  chapel-run-function:
+    runs-on: ubuntu-latest
+    container:
+      # If using Docker Hub:
+      # image: my-docker-user/my-chapel-python:latest
+      # Or if using GHCR:
+      image: ghcr.io/iainmon/chai/chai-github-ci:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Python and Torch
+        run: |
+          python3 --version
+          python3 -c "import torch; print('Torch version:', torch.__version__)"
+
+      - name: Compile example/vgg
+        run: |
+          cd examples/vgg
+          chpl test.chpl -M ../../src -M ../../lib -o vgg
+
+      - name: Final step
+        run: echo "Pau!"
