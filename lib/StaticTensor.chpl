@@ -276,6 +276,64 @@ proc staticTensor.softmax(): staticTensor(rank,eltType) {
     return e / ss;
 }
 
+proc type staticTensor.nllLoss(input: staticTensor(2, real), target: staticTensor(2, int), weight: staticTensor(1, real) = staticTensor.ones(1), reduction: string = "mean"): staticTensor(1, real) {
+    var N = input.shape[0];
+    var C = input.shape[1];
+    var loss = staticTensor.zeros(N);
+    
+    for i in 0..#N {
+        var class_idx = target[i];
+        if class_idx >= 0 && class_idx < C {
+            loss[i] = -weight[class_idx] * input[i, class_idx];
+        }
+    }
+    
+    if reduction == "mean" {
+        return staticTensor([loss.sum() / (weight[target].sum() max 1.0)]);
+    } else if reduction == "sum" {
+        return staticTensor([loss.sum()]);
+    } else {
+        return loss;
+    }
+}
+
+proc type staticTensor.kldivLoss(input: staticTensor(2, real), target: staticTensor(1, real), log_target: bool = false, reduction: string = "mean"): staticTensor(1, real) {
+    var N = input.shape[0]; // Number of samples (rows)
+    var C = input.shape[1]; // Number of classes (columns)
+    var loss = staticTensor.zeros(N); // Initialize loss tensor
+    
+    // Loop over each sample
+    for i in 0..#N {
+        var total_sample_loss = 0.0;
+        
+        // Loop over each class (column)
+        for j in 0..#C {
+            if log_target {
+                // If target is in log space
+                total_sample_loss += target[i, j] * (Math.exp(target[i, j] - input[i, j]));
+            } else {
+                // If target is in probability space
+                total_sample_loss += target[i, j] * (log(target[i, j]) - input[i, j]);
+            }
+        }
+
+        loss[i] = total_sample_loss;
+    }
+
+    // Handle different reduction methods
+    if reduction == "mean" {
+        return staticTensor([loss.sum() / N]); // Average loss over all samples
+    } else if reduction == "sum" {
+        return staticTensor([loss.sum()]); // Sum of losses
+    } else if reduction == "batchmean" {
+        return staticTensor([loss.sum() / N]); // Sum of losses divided by batch size (same as "mean")
+    } else if reduction == "none" {
+        return loss; // No reduction, return individual losses
+    } else {
+        // Invalid reduction type, returning zero
+        return staticTensor([0.0]);
+    }
+}
 
 proc matvec(mat: staticTensor(2,?eltType),vec: staticTensor(1,eltType)): staticTensor(1,eltType) {
     const (n,) = vec.array.domain.shape;

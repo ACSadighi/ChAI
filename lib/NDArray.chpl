@@ -1152,6 +1152,98 @@ proc type ndarray.sqrt(array: ndarray(?rank,?eltType)): ndarray(rank,eltType) {
     return sqrtArr;
 }
 
+proc type ndarray.nll_loss(input: ndarray(2, real), target: ndarray(1, int), weight: ndarray(1, real), ignore_index: int = -1, reduction: string = "mean"): ndarray(1, real) {
+    const (N, C) = input.shape;
+    assert(target.shape[0] == N, "Target size must match batch size");
+    assert(weight.shape[0] == C, "Weight size must match number of classes");
+
+    const dom = util.domainFromShape(N);
+    var losses = new ndarray(dom, real); 
+    ref inputD = input.data;
+    ref targetD = target.data;
+    ref weightD = weight.data;
+    ref lossD = losses.data;
+
+    var valid_count: real = 0.0;
+
+    // Compute per-sample loss
+    forall i in 0..<N {
+        var target_class = targetD[i];
+
+        if target_class == ignore_index then {
+            lossD[i] = 0.0; // Ignored sample
+        } else {
+            lossD[i] = -weightD[target_class] * inputD[i, target_class];
+            valid_count += 1.0;
+        }
+    }
+
+    // Apply reduction
+    if reduction == "none" {
+        return losses; // Return loss per sample
+    } else if reduction == "sum" {
+        return new ndarray([0..0], sum(lossD)); // Return total loss
+    } else if reduction == "mean" {
+        if valid_count > 0 {
+            return new ndarray([0..0], sum(lossD) / valid_count); // Mean over valid samples
+        } else {
+            return new ndarray([0..0], 0.0); // Avoid division by zero
+        }
+    } else {
+        halt("Invalid reduction type. Must be 'none', 'mean', or 'sum'.");
+    }
+}
+
+proc type ndarray.kldiv_loss(input: ndarray(2, real), target: ndarray(2, real), log_target: bool = false, reduction: string = "mean"): ndarray(1, real) {
+    const (N, C) = input.shape;
+    assert(target.shape[0] == N, "Target size must match batch size");
+
+    const dom = util.domainFromShape(N);
+    var losses = new ndarray(dom, real); 
+    ref inputD = input.data;
+    ref targetD = target.data;
+    ref lossD = losses.data;
+
+    var valid_count: real = 0.0;
+
+    // Compute per-sample loss
+    forall i in 0..<N {
+        var total_sample_loss = 0.0;
+        
+        // Loop over each class (column)
+        forall j in 0..<C {
+            if log_target {
+                // If target is in log space
+                total_sample_loss += targetD[i, j] * Math.exp(targetD[i, j] - inputD[i, j]);
+            } else {
+                // If target is in probability space
+                total_sample_loss += targetD[i, j] * (log(targetD[i, j]) - inputD[i, j]);
+            }
+        }
+
+        lossD[i] = total_sample_loss;
+        valid_count += 1.0;
+    }
+
+    // Apply reduction
+    if reduction == "none" {
+        return losses; // Return loss per sample
+    } else if reduction == "sum" {
+        return new ndarray([0..0], sum(lossD)); // Return total loss
+    } else if reduction == "mean" {
+        if valid_count > 0 {
+            return new ndarray([0..0], sum(lossD) / valid_count); // Mean over valid samples
+        } else {
+            return new ndarray([0..0], 0.0); // Avoid division by zero
+        }
+    } else if reduction == "batchmean" {
+        return new ndarray([0..0], sum(lossD) / N); // Mean per batch
+    } else {
+        halt("Invalid reduction type. Must be 'none', 'mean', 'sum', or 'batchmean'.");
+    }
+}
+
+
 proc type ndarray.matvecmul(mat: ndarray(2,?eltType),vec: ndarray(1,eltType)): ndarray(1,eltType) {
     const (m,n) = mat.shape;
     const (n_,) = vec.shape;

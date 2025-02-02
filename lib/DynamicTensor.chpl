@@ -226,6 +226,46 @@ operator /(a: dynamicTensor(?eltType),b: dynamicTensor(eltType)): dynamicTensor(
     return zipBinOp("/",a,b);
 
 
+proc type dynamicTensor.nllLoss(input: dynamicTensor(eltType), target: dynamicTensor(eltType), log_target: bool = false, reduction: string = "mean"): dynamicTensor(eltType) {
+    for param rankX in 2..2 {
+        if input.checkRank(rankX) {
+            if target.checkRank(rankX) {
+                return staticTensor.kldivLoss(input.forceRank(rankX),target.forceRank(rankX),log_target, reduction).eraseRank();
+            }
+        }
+    }
+    halt("Could not determine rank in dynamicTensor.nllLoss.");
+    return new dynamicTensor(eltType);
+}
+
+proc type dynamicTensor.kldivLoss(input: dynamicTensor(eltType), target: dynamicTensor(eltType), weight: dynamicTensor(eltType) = dynamicTensor.ones(1), reduction: string = "mean"): dynamicTensor(eltType) {
+    for param rankX in 2..2 {
+        if input.checkRank(rankX) {
+            for param rankY in 1..2 {
+                if target.checkRank(rankY) {
+                    return staticTensor.nllLoss(input.forceRank(rankX),target.forceRank(rankY),weight.forceRank(rankY), reduction).eraseRank();
+                }
+            }
+        }
+    }
+    halt("Could not determine rank in dynamicTensor.nllLoss.");
+    return new dynamicTensor(eltType);
+}
+
+proc type dynamicTensor.matvecmul(m: dynamicTensor(?eltType),v: dynamicTensor(eltType)): dynamicTensor(eltType) {
+    for param rankM in 2..2 {
+        if m.checkRank(rankM) {
+            for param rankV in 1..2 {
+                if v.checkRank(rankV) {
+                    return staticTensor.matvecmul(m.forceRank(rankM),v.forceRank(rankV)).eraseRank();
+                }
+            }
+        }
+    }
+    halt("Could not determine rank in dynamicTensor.matvecmul.");
+    return new dynamicTensor(eltType);
+}
+
 proc dynamicTensor.sum(axes: int...?r): dynamicTensor(eltType) {
     for param rank in 1..maxRank {
         if this.checkRank(rank) then
