@@ -289,7 +289,7 @@ proc type staticTensor.nllLoss(input: staticTensor(2, real), target: staticTenso
     }
     
     if reduction == "mean" {
-        return staticTensor([loss.sum() / (weight[target].sum() max 1.0)]);
+        return staticTensor([loss.sum() / max(1.0, weight[target].sum())]);
     } else if reduction == "sum" {
         return staticTensor([loss.sum()]);
     } else {
