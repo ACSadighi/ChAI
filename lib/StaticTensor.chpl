@@ -310,7 +310,7 @@ proc type staticTensor.kldivLoss(input: staticTensor(2, real), target: staticTen
         for j in 0..#C {
             if log_target {
                 // If target is in log space
-                total_sample_loss += target[i, j] * (Math.exp(target[i, j] - input[i, j]));
+                total_sample_loss += target[i, j] * (target[i, j] - input[i, j]).exp();
             } else {
                 // If target is in probability space
                 total_sample_loss += target[i, j] * (log(target[i, j]) - input[i, j]);
