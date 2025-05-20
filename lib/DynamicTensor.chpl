@@ -733,14 +733,13 @@ proc type dynamicTensor.nllLoss(
     target: dynamicTensor(eltType), 
     weight: dynamicTensor(eltType),
     ignoreIndex: int = -1,
-    red: bool = true,
     reduction: string = "mean"
 ) {
     for param rankIn in 2..2 {
         if input.checkRank(rankIn) {
             for param rank in 1..1 {
                 if target.checkRank(rankIn) && weight.checkRank(rank) {
-                    return staticTensor.nllLoss(input.forceRank(rankIn),target.forceRank(rank),weight.forceRank(rank),ignoreIndex,red,reduction);
+                    return staticTensor.nllLoss(input.forceRank(rankIn),target.forceRank(rank),weight.forceRank(rank),ignoreIndex,reduction);
                 }
             }
         }
@@ -751,7 +750,6 @@ proc type dynamicTensor.nllLoss(
     input: dynamicTensor(?eltType), 
     target: dynamicTensor(eltType), 
     ignoreIndex: int = -1,
-    red: bool = true,
     reduction: string = "mean"
 ) {
     param inRank: int = 2;
@@ -762,7 +760,7 @@ proc type dynamicTensor.nllLoss(
             var stInput: staticTensor(inRank,eltType) = input.forceRank(inRank);
             var stTarget: staticTensor(targetRank,eltType) = target.forceRank(targetRank);
             var weights: staticTensor(1,eltType) = staticTensor.ones(eltType,3);
-            return staticTensor.nllLoss(stInput,stTarget,weights,ignoreIndex,red,reduction);
+            return staticTensor.nllLoss(stInput,stTarget,weights,ignoreIndex,reduction);
         }
     }
             
