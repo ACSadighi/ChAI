@@ -16,7 +16,7 @@
 #include <chrono>
 #include <thread>
 
-#include <opencv2/opencv.hpp>
+// #include <opencv2/opencv.hpp>
 
 
 #define def_bridge_simple(Name) \
@@ -287,27 +287,31 @@ extern "C" bridge_tensor_t nll_loss(
     int reduction
 ) {
     // Convert bridge_tensor_t to torch::Tensor
-    torch::Tensor t_input = bridge_to_torch(input);
-    torch::Tensor t_target = bridge_to_torch(target);
-    torch::Tensor t_weight = bridge_to_torch(weight);
+    at::Tensor t_input = bridge_to_torch(input).to(torch::kFloat32);
+    at::Tensor t_target = bridge_to_torch(target).to(torch::kLong);
+    at::Tensor t_weight = bridge_to_torch(weight).to(torch::kFloat32);
 
-    // Map reduction int to string
-    std::string reduction_str;
+    // Map reduction int to torch::Reduction enum
+    torch::nn::functional::NLLLossFuncOptions::reduction_t reduction_enum;
     switch (reduction) {
-        case 0: reduction_str = "none"; break;
-        case 1: reduction_str = "mean"; break;
-        case 2: reduction_str = "sum"; break;
-        default: reduction_str = "mean"; break;  // fallback default
+        case 0: reduction_enum = torch::kNone; break;
+        case 1: reduction_enum = torch::kMean; break;
+        case 2: reduction_enum = torch::kSum; break;
+        default: reduction_enum = torch::kMean; break;
     }
 
-    torch::Tensor output = torch::nn::functional::nll_loss(
+    at::Tensor output = torch::nn::functional::nll_loss(
         t_input,
         t_target,
         torch::nn::functional::NLLLossFuncOptions()
             .weight(t_weight)
             .ignore_index(ignoreIndex)
-            .reduction(reduction_str)
+            .reduction(reduction_enum)
     );
+
+    if (output.dim() == 0) {
+        output = output.unsqueeze(0); // Makes scalar result 1D with 1 element
+    }
 
     return torch_to_bridge(output);
 }
@@ -421,53 +425,53 @@ extern "C" float sumArray(float* arr, int* sizes, int dim) {
 }
 
 
-extern "C" void split_loop(int64_t idx, int64_t n) {
-    for (int i = 0; i < n; ++i) {
-        std::cout << "idx(" << idx << "," << n << ") = " << i << std::endl;
-        std::cout.flush();
-    }
-}
+// extern "C" void split_loop(int64_t idx, int64_t n) {
+//     for (int i = 0; i < n; ++i) {
+//         std::cout << "idx(" << idx << "," << n << ") = " << i << std::endl;
+//         std::cout.flush();
+//     }
+// }
 
-extern "C" void split_loop_filler(int64_t n,int64_t* ret) {
-    for (int i = 0; i < n; ++i) {
-        *ret = i;
-        std::this_thread::sleep_for(std::chrono::seconds(0));
-    }
-}
+// extern "C" void split_loop_filler(int64_t n,int64_t* ret) {
+//     for (int i = 0; i < n; ++i) {
+//         *ret = i;
+//         std::this_thread::sleep_for(std::chrono::seconds(0));
+//     }
+// }
 
 
 
-cv::VideoCapture open_camera(int cam_index) {
-    cv::VideoCapture cap(cam_index, cv::CAP_AVFOUNDATION);
-    if (!cap.isOpened()) {
-        std::cerr << "Could not open camera index " << cam_index << std::endl;
-        return cv::VideoCapture();
-    }
-    cap.set(cv::CAP_PROP_BUFFERSIZE, 1); // minimal internal buffering
-    cap.set(cv::CAP_PROP_FPS, 60);       // request higher FPS if possible
-    return cap;
-}
+// cv::VideoCapture open_camera(int cam_index) {
+//     cv::VideoCapture cap(cam_index, cv::CAP_AVFOUNDATION);
+//     if (!cap.isOpened()) {
+//         std::cerr << "Could not open camera index " << cam_index << std::endl;
+//         return cv::VideoCapture();
+//     }
+//     cap.set(cv::CAP_PROP_BUFFERSIZE, 1); // minimal internal buffering
+//     cap.set(cv::CAP_PROP_FPS, 60);       // request higher FPS if possible
+//     return cap;
+// }
 
 
 extern "C" void show_webcam(void) {
-    cv::VideoCapture cap;
-    cap = open_camera(0);
+    // cv::VideoCapture cap;
+    // cap = open_camera(0);
 
-    cv::Mat frame_bgr;
+    // cv::Mat frame_bgr;
 
-    while (true) {
-        if (!cap.read(frame_bgr) || frame_bgr.empty()) {
-            std::cerr << "[WARN] Empty frame, exiting" << std::endl;
-            break;
-        }
+    // while (true) {
+    //     if (!cap.read(frame_bgr) || frame_bgr.empty()) {
+    //         std::cerr << "[WARN] Empty frame, exiting" << std::endl;
+    //         break;
+    //     }
 
-        cv::imshow("webcam", frame_bgr);
+    //     cv::imshow("webcam", frame_bgr);
 
-        if (cv::waitKey(1) == 27) { // ESC key
-            break;
-        }
-    }
+    //     if (cv::waitKey(1) == 27) { // ESC key
+    //         break;
+    //     }
+    // }
 
-    cap.release();
-    cv::destroyAllWindows();
+    // cap.release();
+    // cv::destroyAllWindows();
 }

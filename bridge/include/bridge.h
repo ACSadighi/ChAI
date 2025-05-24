@@ -112,8 +112,8 @@ proto_bridge_simple(softsign);
 
 proto_bridge_simple(tanhshrink);
 
-void split_loop(int64_t idx, int64_t n);
-void split_loop_filler(int64_t n,int64_t* ret);
+// void split_loop(int64_t idx, int64_t n);
+// void split_loop_filler(int64_t n,int64_t* ret);
 
 void show_webcam(void);
 
